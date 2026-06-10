@@ -1,0 +1,94 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Iniciar Sesión";
+}
+
+<div class="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">
+                Aura
+            </h2>
+            <p class="mt-2 text-sm text-gray-500">
+                Ingresa tus credenciales para acceder a tu cuenta
+            </p>
+        </div>
+
+        @if (ViewBag.Error != null)
+        {
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-red-800">
+                        @ViewBag.Error
+                    </p>
+                </div>
+            </div>
+        }
+
+        <form class="mt-6 space-y-6" asp-controller="Account" asp-action="Login" method="POST">
+
+            <div class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">
+                        Correo Electrónico
+                    </label>
+                    <div class="mt-1">
+                        <input id="email" name="email" type="email" autocomplete="email" required
+                               class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition duration-150"
+                               placeholder="tu@correo.com">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">
+                        Contraseña
+                    </label>
+                    <div class="mt-1">
+                        <input id="password" name="password" type="password" autocomplete="current-password" required
+                               class="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-sm transition duration-150"
+                               placeholder="••••••••">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between text-sm">
+                <div class="flex items-center">
+                    <input id="remember-me" name="remember-me" type="checkbox"
+                           class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded transition duration-150">
+                    <label for="remember-me" class="ml-2 block text-gray-600">
+                        Recordar mi sesión
+                    </label>
+                </div>
+
+                <div class="text-sm">
+                    <a href="#" class="font-medium text-gray-600 hover:text-black transition duration-150">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition duration-150">
+                    Iniciar Sesión
+                </button>
+            </div>
+        </form>
+
+        <div class="text-center mt-4">
+            <p class="text-xs text-gray-500">
+                ¿No tienes cuenta?
+                <a asp-action="Register" asp-controller="Account" class="font-semibold text-gray-700 hover:text-black transition duration-150">
+                    Regístrate aquí
+                </a>
+            </p>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,77 @@
+@model Aura.Models.Usuario
+
+@{
+    ViewData["Title"] = "Registro de Usuario";
+}
+
+<div class="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-12 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-md">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">Crea tu cuenta en Aura</h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                ¿Ya tienes cuenta?
+                <a asp-action="Login" asp-controller="Account" class="font-medium text-indigo-600 hover:text-indigo-500">Inicia sesión aquí</a>
+            </p>
+        </div>
+
+        <form asp-action="Register" asp-controller="Account" method="post" class="mt-8 space-y-6">
+            @Html.AntiForgeryToken()
+
+            <div class="-space-y-px rounded-md shadow-sm">
+
+                @* 🚀 ALERT PARA ERRORES PERSONALIZADOS (Firebase / Supabase) *@
+                @if (ViewBag.Error != null)
+                {
+                    <div class="mb-4 rounded bg-red-50 p-3 text-sm text-red-500 border border-red-200 font-medium">
+                        @ViewBag.Error
+                    </div>
+                }
+
+                @* ALERT PARA ERRORES DE MODELO (.NET) *@
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="mb-4 rounded bg-red-50 p-3 text-sm text-red-500 border border-red-200">
+                        <div asp-validation-summary="All" class="list-none"></div>
+                    </div>
+                }
+
+                <div class="mb-4">
+                    <label asp-for="Nombre" class="block text-sm font-medium text-gray-700">Nombre Completo</label>
+                    <input asp-for="Nombre" type="text" required class="relative block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm" placeholder="Juan Pérez" />
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Email" class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+                    <input asp-for="Email" type="email" required class="relative block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm" placeholder="ejemplo@correo.com" />
+                </div>
+
+                <div class="mb-4">
+                    <label name="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input name="password" type="password" required class="relative block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm" placeholder="******" />
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Telefono" class="block text-sm font-medium text-gray-700">Teléfono </label>
+                    <input asp-for="Telefono" type="text" class="relative block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm" placeholder="3001234567" />
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Direccion" class="block text-sm font-medium text-gray-700">Dirección de Envío</label>
+                    <input asp-for="Direccion" type="text" class="relative block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:z-10 border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm" placeholder="Calle 123 #45-67" />
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" class="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                    Registrarse
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

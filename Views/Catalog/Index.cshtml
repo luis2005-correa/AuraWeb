@@ -1,0 +1,349 @@
+@model IEnumerable<Aura.Models.CatalogImage>
+@{
+    ViewData["Title"] = "Catalogo - Aura";
+    var isAdmin = (bool)(ViewBag.IsAdmin ?? false);
+}
+
+<!-- CABECERA -->
+<div class="bg-neutral-900 relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div>
+                <p class="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">Aura Store</p>
+                <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Catalogo Completo</h1>
+                <p class="text-neutral-400 text-sm mt-2">@Model.Count() productos disponibles</p>
+            </div>
+            @if (isAdmin)
+            {
+                <button onclick="openCreateModal()" class="flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-neutral-900 font-bold px-5 py-3 rounded-xl transition-all duration-200 shadow-lg hover:-translate-y-0.5 text-sm whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    Agregar Producto
+                </button>
+            }
+        </div>
+        <div class="mt-8 flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-grow">
+                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                <input type="text" id="search-input" placeholder="Buscar producto..." oninput="filterProducts()" class="w-full bg-white/10 text-white placeholder-neutral-500 border border-white/10 focus:border-amber-400 focus:outline-none rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all" />
+            </div>
+            <select id="sort-select" onchange="sortProducts()" class="bg-white/10 text-neutral-300 border border-white/10 focus:border-amber-400 focus:outline-none rounded-xl px-4 py-2.5 text-sm transition-all cursor-pointer">
+                <option value="default">Ordenar por</option>
+                <option value="price-asc">Precio: Menor a Mayor</option>
+                <option value="price-desc">Precio: Mayor a Menor</option>
+                <option value="name-asc">Nombre: A-Z</option>
+            </select>
+        </div>
+        @if (!isAdmin)
+        {
+            <p class="text-neutral-500 text-xs mt-4 flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672Zm-7.518-.267A8.25 8.25 0 1 1 20.25 10.5M8.288 14.212A5.25 5.25 0 1 1 17.25 10.5" /></svg>
+                <span class="hidden sm:inline">Doble clic</span><span class="sm:hidden">Doble toque</span> en cualquier producto para ver más detalles y fotos
+            </p>
+        }
+    </div>
+</div>
+
+<!-- GRID -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var item in Model)
+            {
+                <div class="product-card group relative flex flex-col bg-white border border-neutral-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer select-none"
+                     data-name="@item.ImageName.ToLower()" 
+                     data-product-name="@Html.Raw(item.ImageName.Replace("'",@"\'"  ))"
+                     data-image="@item.ImageUrl"
+                     data-image2="@(item.ImageUrl2 ?? "")"
+                     data-price="@item.Precio" 
+                     data-id="@item.Id"
+                     ondblclick="openDetailModal(@item.Id, '@Html.Raw(item.ImageName.Replace("'",@"\'"  ))', '@item.ImageUrl', '@(item.ImageUrl2 ?? "")', @item.Precio)"
+                     title="Doble clic para ver detalles">
+                    <!-- Imagen principal -->
+                    <div class="relative aspect-square overflow-hidden bg-neutral-100">
+                        <img src="@item.ImageUrl" alt="@item.ImageName"
+                             class="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                             onerror="this.src='https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=500&auto=format&fit=crop'" />
+
+                        <!-- Overlay hints -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end pb-4 gap-2">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl2))
+                            {
+                                <span class="bg-white/90 text-neutral-800 text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                                    2 fotos
+                                </span>
+                            }
+                            <span class="bg-amber-400/90 text-neutral-900 text-[10px] font-bold px-3 py-1 rounded-full">Doble clic para ver</span>
+                        </div>
+
+                        @if (isAdmin)
+                        {
+                            <div class="absolute top-2 left-2">
+                                @if (item.Activo) { <span class="bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Activo</span> }
+                                else { <span class="bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Inactivo</span> }
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(item.ImageUrl2))
+                        {
+                            <div class="absolute top-2 right-2">
+                                <span class="bg-neutral-900/70 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Z" /></svg>
+                                    +1
+                                </span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Info -->
+                    <div class="p-4 flex flex-col flex-grow gap-3">
+                        <div class="flex-grow">
+                            <p class="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-1">Aura Esencial</p>
+                            <h3 class="text-sm font-bold text-neutral-800 leading-snug line-clamp-2">@item.ImageName</h3>
+                            <p class="text-xl font-black text-neutral-900 mt-2">$@item.Precio.ToString("F2")</p>
+                        </div>
+                        @if (isAdmin)
+                        {
+                            <div class="flex gap-2 pt-1 border-t border-neutral-100">
+                                <button onclick="event.stopPropagation(); openEditModal(@item.Id, '@Html.Raw(item.ImageName.Replace("'",@"\'"  ))', '@item.ImageUrl', '@(item.ImageUrl2 ?? "")', @item.Precio, @item.Activo.ToString().ToLower())"
+                                    class="flex-1 flex items-center justify-center gap-1.5 border border-amber-400 text-amber-600 hover:bg-amber-50 font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
+                                    Editar
+                                </button>
+                                <button onclick="event.stopPropagation(); deleteProduct(@item.Id, '@Html.Raw(item.ImageName.Replace("'",@"\'"  ))')"
+                                    class="flex items-center justify-center gap-1.5 border border-red-200 text-red-500 hover:bg-red-50 font-semibold text-xs py-2 px-3 rounded-lg transition-all duration-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                    Eliminar
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <button onclick="event.stopPropagation(); addToCart(@item.Id, '@Html.Raw(item.ImageName.Replace("'",@"\'"  ))', @item.Precio, '@item.ImageUrl')"
+                                class="w-full bg-neutral-900 hover:bg-amber-500 text-white hover:text-neutral-900 font-bold text-xs py-2.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z" /></svg>
+                                Agregar al carrito
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-span-full text-center py-20 bg-white border border-dashed border-neutral-200 rounded-2xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-neutral-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z" /></svg>
+                <p class="text-neutral-400 font-medium text-sm">No hay productos en el catalogo.</p>
+                @if (isAdmin) { <button onclick="openCreateModal()" class="mt-4 text-xs font-semibold text-amber-500 hover:underline">+ Agregar el primer producto</button> }
+            </div>
+        }
+    </div>
+    <div id="no-results" class="hidden text-center py-20">
+        <p class="text-neutral-400 text-sm">No se encontraron productos para tu busqueda.</p>
+    </div>
+</div>
+
+<!-- MODAL CREAR -->
+<div id="modal-create" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('modal-create')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 transform transition-all duration-300 scale-95 opacity-0 overflow-y-auto max-h-[90vh]" id="modal-create-box">
+        <div class="flex items-center justify-between mb-6">
+            <div><h2 class="text-lg font-black text-neutral-900">Agregar Producto</h2><p class="text-xs text-neutral-500 mt-0.5">Completa los campos para agregar un nuevo articulo</p></div>
+            <button onclick="closeModal('modal-create')" class="text-neutral-400 hover:text-neutral-700 transition p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Nombre del producto *</label>
+                <input id="create-name" type="text" placeholder="Ej: Camiseta Premium Oversize" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" />
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">URL de la imagen principal *</label>
+                <input id="create-url" type="url" placeholder="https://..." class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" oninput="previewImage('create-url','create-preview','create-ph')" />
+                <div class="mt-2 rounded-xl overflow-hidden h-32 bg-neutral-100 border border-neutral-100 relative">
+                    <img id="create-preview" src="" alt="Vista previa" class="w-full h-full object-cover hidden" />
+                    <div id="create-ph" class="w-full h-full flex items-center justify-center text-neutral-400 text-xs absolute inset-0">Vista previa imagen 1</div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">URL de la imagen secundaria (Opcional)</label>
+                <div class="flex gap-2">
+                    <input id="create-url2" type="url" placeholder="https://..." class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" oninput="previewImage('create-url2','create-preview2','create-ph2')" />
+                    <button type="button" onclick="saveCreate()" class="whitespace-nowrap bg-neutral-900 hover:bg-neutral-800 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition-all flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                        Guardar
+                    </button>
+                </div>
+                <div class="mt-2 rounded-xl overflow-hidden h-32 bg-neutral-100 border border-neutral-100 relative">
+                    <img id="create-preview2" src="" alt="Vista previa" class="w-full h-full object-cover hidden" />
+                    <div id="create-ph2" class="w-full h-full flex items-center justify-center text-neutral-400 text-xs absolute inset-0">Vista previa imagen 2</div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Precio (USD) *</label>
+                <div class="relative"><span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-sm">$</span><input id="create-price" type="number" step="0.01" min="0" placeholder="0.00" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl pl-8 pr-4 py-2.5 text-sm outline-none transition-all" /></div>
+            </div>
+        </div>
+        <div id="create-error" class="hidden mt-3 bg-red-50 border border-red-200 text-red-600 text-xs p-3 rounded-lg"></div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeModal('modal-create')" class="flex-1 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-semibold py-2.5 rounded-xl text-sm transition-all">Cancelar</button>
+            <button onclick="saveCreate()" id="btn-save-create" class="flex-1 bg-amber-400 hover:bg-amber-500 text-neutral-900 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2"><span>Guardar Producto</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR -->
+<div id="modal-edit" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('modal-edit')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 transform transition-all duration-300 scale-95 opacity-0 overflow-y-auto max-h-[90vh]" id="modal-edit-box">
+        <div class="flex items-center justify-between mb-6">
+            <div><h2 class="text-lg font-black text-neutral-900">Editar Producto</h2><p class="text-xs text-neutral-500 mt-0.5">Modifica los datos del producto</p></div>
+            <button onclick="closeModal('modal-edit')" class="text-neutral-400 hover:text-neutral-700 transition p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <input type="hidden" id="edit-id" />
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Nombre del producto *</label>
+                <input id="edit-name" type="text" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" />
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">URL de la imagen principal *</label>
+                <input id="edit-url" type="url" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" oninput="previewImage('edit-url','edit-preview',null)" />
+                <div class="mt-2 rounded-xl overflow-hidden h-32 bg-neutral-100 border border-neutral-100"><img id="edit-preview" src="" alt="Vista previa" class="w-full h-full object-cover" /></div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">URL de la imagen secundaria (Opcional)</label>
+                <div class="flex gap-2">
+                    <input id="edit-url2" type="url" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" oninput="previewImage('edit-url2','edit-preview2','edit-ph2')" />
+                    <button type="button" onclick="saveEdit()" class="whitespace-nowrap bg-neutral-900 hover:bg-neutral-800 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition-all flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                        Guardar
+                    </button>
+                </div>
+                <div class="mt-2 rounded-xl overflow-hidden h-32 bg-neutral-100 border border-neutral-100 relative">
+                    <img id="edit-preview2" src="" alt="Vista previa 2" class="w-full h-full object-cover hidden" />
+                    <div id="edit-ph2" class="w-full h-full flex items-center justify-center text-neutral-400 text-xs absolute inset-0">Vista previa imagen 2</div>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Precio (USD) *</label>
+                <div class="relative"><span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-sm">$</span><input id="edit-price" type="number" step="0.01" min="0" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl pl-8 pr-4 py-2.5 text-sm outline-none transition-all" /></div>
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer">
+                <div class="relative">
+                    <input type="checkbox" id="edit-activo" class="sr-only peer" />
+                    <div class="w-10 h-5 bg-neutral-200 peer-checked:bg-amber-400 rounded-full transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+                </div>
+                <span class="text-sm font-semibold text-neutral-700">Producto activo</span>
+            </label>
+        </div>
+        <div id="edit-error" class="hidden mt-3 bg-red-50 border border-red-200 text-red-600 text-xs p-3 rounded-lg"></div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="closeModal('modal-edit')" class="flex-1 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-semibold py-2.5 rounded-xl text-sm transition-all">Cancelar</button>
+            <button onclick="saveEdit()" id="btn-save-edit" class="flex-1 bg-amber-400 hover:bg-amber-500 text-neutral-900 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2"><span>Guardar Cambios</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DETALLE DE PRODUCTO -->
+<div id="modal-detail" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeModal('modal-detail')"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl
+                transform transition-all duration-300 scale-95 opacity-0
+                overflow-hidden flex flex-col md:flex-row
+                min-h-[400px] md:min-h-[500px]" id="modal-detail-box">
+
+        <!-- Galería -->
+        <div class="w-full md:w-1/2 bg-[#f5f5f5] relative overflow-hidden min-h-[300px] md:min-h-[400px]">
+
+            <!-- Imágenes -->
+            <img id="detail-image" src="" alt="Producto"
+                 class="absolute inset-0 w-full h-full object-cover transition-opacity duration-500" />
+            <img id="detail-image-2" src="" alt="Producto"
+                 class="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 opacity-0" />
+
+            <!-- Miniaturas -->
+            <div id="detail-thumbnails"
+                 class="hidden absolute left-0 top-0 bottom-0 w-20 flex-col gap-3 p-4 z-10">
+                <button onclick="setDetailImage(0)" id="thumb-btn-1"
+                        class="w-full aspect-[3/4] rounded-lg overflow-hidden border-2 border-neutral-900 shadow-sm opacity-100 transition-all focus:outline-none bg-white">
+                    <img id="detail-thumb-1" src="" class="w-full h-full object-cover" />
+                </button>
+                <button onclick="setDetailImage(1)" id="thumb-btn-2"
+                        class="w-full aspect-[3/4] rounded-lg overflow-hidden border-2 border-transparent shadow-sm opacity-70 hover:opacity-100 transition-all focus:outline-none hover:border-neutral-400 bg-white">
+                    <img id="detail-thumb-2" src="" class="w-full h-full object-cover" />
+                </button>
+            </div>
+
+            <!-- Botones de Navegación -->
+            <div id="detail-nav-buttons" class="absolute bottom-4 right-4 flex gap-2 hidden z-10">
+                <button id="btn-prev-img"
+                        class="bg-white hover:bg-neutral-100 text-neutral-900 p-2.5 rounded-full shadow-lg transition-transform hover:scale-105"
+                        onclick="toggleDetailImage()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                </button>
+                <button id="btn-next-img"
+                        class="bg-white hover:bg-neutral-100 text-neutral-900 p-2.5 rounded-full shadow-lg transition-transform hover:scale-105"
+                        onclick="toggleDetailImage()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                </button>
+            </div>
+
+            <!-- Botón cerrar -->
+            <button onclick="closeModal('modal-detail')"
+                    class="absolute top-3 right-3 z-20 text-neutral-400 hover:text-neutral-900 transition bg-white/90 hover:bg-white rounded-full p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <!-- Info -->
+        <div class="w-full md:w-1/2 p-8 md:p-10 flex flex-col">
+            <div class="flex-grow">
+                <p class="text-amber-500 text-xs font-bold uppercase tracking-widest mb-2">Colección Exclusiva</p>
+                <h2 id="detail-name" class="text-4xl font-black text-neutral-900 leading-tight mb-3"></h2>
+                <p id="detail-price" class="text-2xl font-black text-neutral-900 mb-4"></p>
+
+                <div class="h-px w-full bg-neutral-100 mb-4"></div>
+
+                <div class="prose prose-sm text-neutral-500">
+                    <p>Diseño premium pensado para brindar comodidad y estilo. Confeccionado con materiales de alta calidad para garantizar durabilidad.</p>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button id="btn-detail-add-cart" onclick="addDetailToCart()"
+                        class="w-full bg-neutral-900 hover:bg-amber-400 hover:text-neutral-900 text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                    Añadir al carrito
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL ELIMINAR -->
+<div id="modal-delete" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('modal-delete')"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 transform transition-all duration-300 scale-95 opacity-0" id="modal-delete-box">
+        <div class="text-center">
+            <div class="mx-auto w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+            </div>
+            <h2 class="text-lg font-black text-neutral-900 mb-2">Eliminar Producto</h2>
+            <p class="text-sm text-neutral-500 mb-1">Estas seguro de eliminar <strong id="delete-product-name" class="text-neutral-700"></strong>?</p>
+            <p class="text-xs text-red-400 mb-6">Esta accion no se puede deshacer.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modal-delete')" class="flex-1 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-semibold py-2.5 rounded-xl text-sm transition-all">Cancelar</button>
+                <button onclick="confirmDelete()" id="btn-confirm-delete" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm transition-all">Si, eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+

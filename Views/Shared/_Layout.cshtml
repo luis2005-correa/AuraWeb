@@ -1,0 +1,216 @@
+@using Microsoft.AspNetCore.Http
+@using System.IdentityModel.Tokens.Jwt
+@using System.Security.Claims
+@inject Aura.Models.TiendaRopaDbContext DbContext
+
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-neutral-50 text-neutral-900 scroll-smooth">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Aura</title>
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Aura.styles.css" asp-append-version="true" />
+</head>
+<body class="flex flex-col h-full antialiased font-sans">
+
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between gap-4">
+
+                <div class="flex items-center gap-8">
+                    <a class="text-2xl font-black tracking-tighter text-neutral-900 hover:text-amber-500 transition duration-200" asp-area="" asp-controller="Home" asp-action="Index">
+                        AURA<span class="text-amber-400">.</span>
+                    </a>
+
+                    <div class="hidden sm:flex items-center gap-6">
+                        <a class="text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition" asp-area="" asp-controller="Home" asp-action="Index">Inicio</a>
+                        <a class="text-sm font-semibold text-neutral-600 hover:text-neutral-900 transition" asp-controller="Catalog" asp-action="Index">Catálogo</a>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+
+                    <!-- Botón carrito -->
+                    <button onclick="toggleCart()" id="nav-cart-btn"
+                            class="relative p-2 text-neutral-700 hover:text-amber-500 transition rounded-lg hover:bg-neutral-100 flex items-center gap-1.5"
+                            title="Ver Carrito">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                        </svg>
+                        <span id="cart-count" class="cart-count absolute -top-0.5 -right-0.5 bg-neutral-900 text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center border border-white">0</span>
+                    </button>
+
+                    <div class="h-4 w-px bg-neutral-200"></div>
+
+                    @{
+                        var tokenStr = Context.Session.GetString("FirebaseToken");
+                        string? userEmail = null;
+                        string? userRole = null;
+                        string? userName = null;
+
+                        if (!string.IsNullOrEmpty(tokenStr))
+                        {
+                            try
+                            {
+                                var handler = new JwtSecurityTokenHandler();
+                                var jsonToken = handler.ReadJwtToken(tokenStr);
+
+                                userName = jsonToken.Claims.FirstOrDefault(c => c.Type.Equals("name", StringComparison.OrdinalIgnoreCase))?.Value
+                                ?? jsonToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value
+                                ?? jsonToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.GivenName)?.Value;
+
+                                userEmail = jsonToken.Claims.FirstOrDefault(c => c.Type.Equals("email", StringComparison.OrdinalIgnoreCase))?.Value
+                                ?? jsonToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+
+                                userRole = jsonToken.Claims.FirstOrDefault(c => c.Type.Equals("role", StringComparison.OrdinalIgnoreCase))?.Value
+                                ?? jsonToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+                                if (!string.IsNullOrEmpty(userEmail))
+                                {
+                                    var dbUser = DbContext.Usuarios.FirstOrDefault(u => u.Email == userEmail);
+                                    if (dbUser != null && !string.IsNullOrEmpty(dbUser.Nombre))
+                                    {
+                                        userName = dbUser.Nombre;
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
+                    @if (string.IsNullOrEmpty(tokenStr))
+                    {
+                        <a class="text-sm font-bold text-neutral-900 bg-neutral-100 hover:bg-neutral-200 px-4 py-2 rounded-xl transition duration-200"
+                           asp-controller="Account" asp-action="Login">
+                            Ingresar
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="flex items-center gap-2">
+                            @if (!string.IsNullOrWhiteSpace(userRole))
+                            {
+                                <span class="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-1 rounded-md tracking-wide uppercase">
+                                    @userRole
+                                </span>
+                            }
+                            <span class="text-sm text-neutral-600 font-medium" title="@userEmail">
+                                @(string.IsNullOrWhiteSpace(userName) ? userEmail : userName)
+                            </span>
+                            <a class="text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition duration-200"
+                               asp-controller="Account" asp-action="Logout">
+                                Cerrar Sesión
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="flex-grow">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- CART OVERLAY -->
+    <div id="cart-overlay" onclick="toggleCart()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] hidden opacity-0 transition-opacity duration-300"></div>
+
+    <!-- CART SIDEBAR -->
+    <div id="cart-sidebar"
+         class="fixed top-4 bottom-4 right-4 z-[100]
+                w-96
+                bg-white/95 backdrop-blur-xl border border-neutral-200/50
+                shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]
+                rounded-3xl transform translate-x-[calc(100%+2rem)]
+                transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+                flex flex-col overflow-hidden hidden">
+        <div class="px-5 py-4 border-b border-neutral-100 flex items-center justify-between bg-white">
+            <h2 class="text-lg font-black text-neutral-900 tracking-tight flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z" /></svg>
+                Tu Carrito
+            </h2>
+            <button onclick="toggleCart()" class="text-neutral-400 hover:text-neutral-800 transition p-2 bg-neutral-50 hover:bg-neutral-100 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div id="cart-items-container" class="flex-grow overflow-y-auto p-5 flex flex-col gap-4 custom-scrollbar">
+            <!-- Items renders here -->
+        </div>
+        <div class="p-5 border-t border-neutral-100 bg-neutral-50">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-sm font-bold text-neutral-500 uppercase tracking-wider">Total</span>
+                <span id="cart-total" class="text-2xl font-black text-neutral-900">$0.00</span>
+            </div>
+            <button onclick="alert('Funcionalidad de pago proximamente!')"
+                    class="w-full bg-neutral-900 hover:bg-amber-400 hover:text-neutral-900 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2">
+                Proceder al pago
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- FLOATING CART BUTTON (FAB) -->
+    <button id="cart-fab" onclick="toggleCart()"
+            class="fixed bottom-6 right-6 z-40 bg-neutral-900 hover:bg-amber-400 text-white hover:text-neutral-900 p-4 rounded-full shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 flex items-center justify-center group"
+            title="Ver Carrito">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+        </svg>
+        <span class="cart-count absolute -top-1 -right-1 bg-amber-400 text-neutral-900 group-hover:bg-neutral-900 group-hover:text-white text-[11px] font-black h-5 w-5 rounded-full flex items-center justify-center border-2 border-white transition-colors">0</span>
+    </button>
+
+    <!-- TOAST GLOBAL -->
+    <div id="toast" class="fixed bottom-24 right-6 z-[200] transform translate-y-20 opacity-0 transition-all duration-500 ease-out pointer-events-none">
+        <div class="bg-neutral-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
+            <div id="toast-icon" class="bg-amber-400 rounded-full p-1.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+            </div>
+            <span class="text-sm font-semibold" id="toast-text">Operacion exitosa</span>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-neutral-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-neutral-500">
+                <div>
+                    &copy; 2026 - <span class="font-bold text-neutral-800 tracking-tight">AURA.</span> Todos los derechos reservados.
+                </div>
+                <div class="flex gap-6">
+                    <a class="hover:text-neutral-900 transition" href="#">Términos de servicio</a>
+                    <a class="hover:text-neutral-900 transition" href="#">Política de Privacidad</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Identificador del usuario autenticado (vacío si es invitado)
+        window.AURA_USER = '@(userEmail ?? "")';
+    </script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/FuncionesGlobales.Js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDzg5m6SAGbJoizlDaCv4RbW8Exte4eIQA",
+          authDomain: "aura-1ee36.firebaseapp.com",
+          projectId: "aura-1ee36",
+          storageBucket: "aura-1ee36.firebasestorage.app",
+          messagingSenderId: "159487314063",
+          appId: "1:159487314063:web:5197f8c5f9dcd3875948fa",
+          measurementId: "G-D7CMNM25NG"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+    </script>
+</body>
+</html>
