@@ -1,0 +1,32 @@
+# 1. Capa de ejecución (Base)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
+
+# 2. Capa de compilación (SDK)
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copiar el archivo de proyecto y restaurar dependencias
+COPY ["Aura.csproj", "./"]
+RUN dotnet restore "Aura.csproj"
+
+# Copiar todo el código y compilar
+COPY . .
+WORKDIR "/src/."
+RUN dotnet build "Aura.csproj" -c Release -o /app/build
+
+# 3. Capa de publicación
+FROM build AS publish
+RUN dotnet publish "Aura.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# 4. Configuración final del contenedor
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Asegurar que ASP.NET Core escuche en el puerto que Render espera (8080)
+ENV ASPNETCORE_URLS=http://+:8080
+
+ENTRYPOINT ["dotnet", "Aura.dll"]
