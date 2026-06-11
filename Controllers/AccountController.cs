@@ -66,7 +66,6 @@ namespace Aura.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(Usuario usuario, string password)
         {
-            // Removemos las propiedades internas del modelo para evitar fallos de validación arbitrarios
             ModelState.Remove(nameof(usuario.PasswordHash));
             ModelState.Remove(nameof(usuario.Rol));
             ModelState.Remove(nameof(usuario.RolId));
@@ -83,7 +82,6 @@ namespace Aura.Controllers
                 return View(usuario);
             }
 
-            // 1. Intentar registrar las credenciales en Firebase Auth
             var firebaseUid = await _firebaseService.RegistrarUsuarioAuthAsync(usuario.Email, password);
 
             if (string.IsNullOrEmpty(firebaseUid))
@@ -94,7 +92,6 @@ namespace Aura.Controllers
 
             try
             {
-
                 usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
                 usuario.RolId = 2; // 2 = Cliente
                 usuario.FechaRegistro = DateTime.UtcNow;
@@ -102,19 +99,16 @@ namespace Aura.Controllers
                 _context.Usuarios.Add(usuario);
                 await _context.SaveChangesAsync();
 
-
                 var token = await _firebaseService.LoginAsync(usuario.Email, password);
 
                 if (token != null)
-                { 
+                {
                     HttpContext.Session.SetString("FirebaseToken", token);
-
                     TempData["SuccessMessage"] = "¡Cuenta creada e inicio de sesión correcto!";
                     return RedirectToAction("Index", "Home");
                 }
                 else
                 {
-
                     TempData["SuccessMessage"] = "Cuenta creada. Por favor, inicia sesión de forma manual.";
                     return RedirectToAction("Login");
                 }
@@ -131,34 +125,56 @@ namespace Aura.Controllers
         public IActionResult Logout()
         {
             HttpContext.Session.Remove("FirebaseToken");
-            return RedirectToAction("Login"); 
+            return RedirectToAction("Login");
         }
 
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            // Si ya está logueado, no necesita recuperar contraseña
+            if (!string.IsNullOrEmpty(HttpContext.Session.GetString("FirebaseToken")))
+            {
+                return RedirectToAction("Index", "Home");
+            }
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ForgotPassword(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                ViewBag.Error = "Por favor, ingresa tu correo electrónico.";
+                return View();
+            }
+
+            // Invocamos el método REST que añadimos a tu FirebaseService
+            bool isSent = await _firebaseService.SendPasswordResetEmailAsync(email);
+
+            if (isSent)
+            {
+                // Usamos TempData para que el mensaje sobreviva a la redirección hacia el Login
+                TempData["SuccessMessage"] = "Se ha enviado un enlace de recuperación a tu correo.";
+                return RedirectToAction("Login");
+            }
+
+            ViewBag.Error = "No se pudo enviar el correo. Verifica si está bien escrito o si el usuario existe.";
+            return View();
+        }
         [HttpGet("/account/inicializar-admin")]
         public async Task<IActionResult> InicializarAdmin()
         {
             try
             {
-                if (FirebaseApp.DefaultInstance == null)
-                {
-#pragma warning disable CS0618
-                    FirebaseApp.Create(new AppOptions()
-                    {
-                        Credential = GoogleCredential.FromFile("aura-1ee36-firebase-adminsdk-fbsvc-d5a8a8ade8.json")
-                    });
-#pragma warning restore CS0618
-                }
-                    
+                // Ya no necesitas hacer el FirebaseApp.Create aquí, ya existe globalmente
                 string uid = "rpmZy4Q3wlPiOlEWmVWLu3EzqsA2";
 
-
                 var claims = new Dictionary<string, object>()
-                {
-                    { "role", "Admin" }
-                };
+        {
+            { "role", "Admin" }
+        };
 
                 await FirebaseAuth.DefaultInstance.SetCustomUserClaimsAsync(uid, claims);
-
                 return Ok("¡Rol de Admin asignado correctamente en Firebase Auth!");
             }
             catch (Exception ex)

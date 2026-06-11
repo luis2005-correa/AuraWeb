@@ -1,10 +1,24 @@
 using Microsoft.EntityFrameworkCore;
-using Aura.Models; 
+using Aura.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
+using Aura.Services;
 
-var builder = WebApplication.CreateBuilder(args);
-// ?? CONFIGURACIÓN DE BASE DE DATOS FUERTE Y LIMPIA PARA POSTGRESQL (SUPABASE)
+var builder = WebApplication.CreateBuilder(args); 
+
+if (FirebaseApp.DefaultInstance == null)
+{
+#pragma warning disable CS0618
+    FirebaseApp.Create(new AppOptions()
+    {
+        Credential = GoogleCredential.FromFile("aura-1ee36-firebase-adminsdk-fbsvc-d5a8a8ade8.json")
+    });
+#pragma warning restore CS0618
+}
+
+// 🔐 CONFIGURACIÓN DE BASE DE DATOS FUERTE Y LIMPIA PARA POSTGRESQL (SUPABASE)
 var connectionString = builder.Configuration.GetConnectionString("con");
 
 builder.Services.AddDbContext<TiendaRopaDbContext>(options =>
@@ -69,8 +83,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // 3. AGREGAR EL SERVICIO DE AUTORIZACIÓN
 builder.Services.AddAuthorization();
 
-// Registrar el HttpClient y nuestro servicio personalizado de Firebase
-builder.Services.AddHttpClient<Aura.Services.FirebaseService>();
+// Registrar el HttpClient junto a nuestro servicio personalizado de Firebase
+builder.Services.AddHttpClient<FirebaseService>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
