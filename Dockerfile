@@ -1,11 +1,11 @@
-# 1. Capa de ejecución (Base)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+# 1. Capa de ejecución (Base usando .NET 9)
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-# 2. Capa de compilación (SDK)
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# 2. Capa de compilación (SDK usando .NET 9)
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copiar el archivo de proyecto y restaurar dependencias
@@ -26,7 +26,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Asegurar que ASP.NET Core escuche en el puerto que Render espera (8080)
+# Asegurar que ASP.NET Core escuche en el puerto que Render espera
 ENV ASPNETCORE_URLS=http://+:8080
 
 ENTRYPOINT ["dotnet", "Aura.dll"]
