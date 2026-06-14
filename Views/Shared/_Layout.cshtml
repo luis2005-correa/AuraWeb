@@ -49,6 +49,8 @@
                         string? userEmail = null;
                         string? userRole = null;
                         string? userName = null;
+                        string? userPhone = null;
+                        string? userAddress = null;
 
                         if (!string.IsNullOrEmpty(tokenStr))
                         {
@@ -70,9 +72,14 @@
                                 if (!string.IsNullOrEmpty(userEmail))
                                 {
                                     var dbUser = DbContext.Usuarios.FirstOrDefault(u => u.Email == userEmail);
-                                    if (dbUser != null && !string.IsNullOrEmpty(dbUser.Nombre))
+                                    if (dbUser != null)
                                     {
-                                        userName = dbUser.Nombre;
+                                        if (!string.IsNullOrEmpty(dbUser.Nombre))
+                                        {
+                                            userName = dbUser.Nombre;
+                                        }
+                                        userPhone = dbUser.Telefono;
+                                        userAddress = dbUser.Direccion;
                                     }
                                 }
                             }
@@ -172,7 +179,7 @@
                 <span class="text-sm font-bold text-neutral-500 uppercase tracking-wider">Total</span>
                 <span id="cart-total" class="text-2xl font-black text-neutral-900">$0.00</span>
             </div>
-            <button onclick="alert('Funcionalidad de pago proximamente!')"
+            <button onclick="proceedToCheckout()"
                     class="w-full bg-neutral-900 hover:bg-amber-400 hover:text-neutral-900 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-lg flex items-center justify-center gap-2">
                 Proceder al pago
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
@@ -189,6 +196,55 @@
         </svg>
         <span class="cart-count absolute -top-1 -right-1 bg-amber-400 text-neutral-900 group-hover:bg-neutral-900 group-hover:text-white text-[11px] font-black h-5 w-5 rounded-full flex items-center justify-center border-2 border-white transition-colors">0</span>
     </button>
+
+    <!-- CHECKOUT MODAL (WHATSAPP CONFIRMATION) -->
+    <div id="modal-checkout" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('modal-checkout')"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-7 transform transition-all duration-300 scale-95 opacity-0 overflow-y-auto max-h-[90vh]" id="modal-checkout-box">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-lg font-black text-neutral-900">Confirmación de Envío</h2>
+                    <p class="text-xs text-neutral-500 mt-0.5">Por favor confirma tus datos para procesar el envío por WhatsApp</p>
+                </div>
+                <button onclick="closeModal('modal-checkout')" class="text-neutral-400 hover:text-neutral-700 transition p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <form id="form-checkout" onsubmit="sendWhatsAppOrder(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Nombre Completo *</label>
+                    <input id="checkout-name" type="text" required placeholder="Ej: Juan Pérez" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Correo Electrónico *</label>
+                    <input id="checkout-email" type="email" required placeholder="ejemplo@correo.com" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Teléfono de Contacto *</label>
+                    <input id="checkout-phone" type="tel" required placeholder="Ej: 3001234567" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">Dirección de Envío *</label>
+                    <input id="checkout-address" type="text" required placeholder="Ej: Calle 123 #45-67" class="w-full border border-neutral-200 focus:border-amber-400 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-2.5 text-sm outline-none transition-all" />
+                </div>
+                
+                <div class="bg-neutral-50 p-3.5 rounded-xl border border-neutral-100 mt-2">
+                    <div class="flex justify-between items-center text-sm font-semibold text-neutral-700">
+                        <span>Total del Pedido:</span>
+                        <span id="checkout-total-val" class="text-base font-black text-neutral-900">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-checkout')" class="order-2 sm:order-1 flex-1 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-semibold py-2.5 rounded-xl text-sm transition-all">Cancelar</button>
+                    <button type="submit" class="order-1 sm:order-2 flex-1 bg-amber-400 hover:bg-amber-500 text-neutral-900 font-bold py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a.75.75 0 0 1-1.074-.765 11.995 11.995 0 0 0 1.61-3.21.75.75 0 0 0-.256-.836C4.015 15.155 3 13.688 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" /></svg>
+                        Enviar Pedido
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- TOAST GLOBAL -->
     <div id="toast" class="fixed bottom-24 right-6 z-[200] transform translate-y-20 opacity-0 transition-all duration-500 ease-out pointer-events-none">
@@ -215,8 +271,13 @@
     </footer>
 
     <script>
-        // Identificador del usuario autenticado (vacío si es invitado)
-        window.AURA_USER = '@(userEmail ?? "")';
+        // Datos del usuario autenticado
+        window.AURA_USER = {
+            email: '@Html.Raw(userEmail ?? "")',
+            name: '@Html.Raw(userName ?? "")',
+            phone: '@Html.Raw(userPhone ?? "")',
+            address: '@Html.Raw(userAddress ?? "")'
+        };
     </script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

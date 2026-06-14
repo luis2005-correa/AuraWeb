@@ -3,12 +3,17 @@
 // Si es invitado            → sessionStorage (se vacía al cerrar/reabrir el tab).
 
 function getCartKey() {
-    const user = (window.AURA_USER || '').trim();
+    const user = typeof window.AURA_USER === 'object' 
+        ? (window.AURA_USER.email || '').trim() 
+        : (window.AURA_USER || '').trim();
     return user ? 'aura_cart_' + user : 'aura_cart_guest';
 }
 
 function getCartStorage() {
-    return (window.AURA_USER || '').trim() ? localStorage : sessionStorage;
+    const user = typeof window.AURA_USER === 'object' 
+        ? (window.AURA_USER.email || '').trim() 
+        : (window.AURA_USER || '').trim();
+    return user ? localStorage : sessionStorage;
 }
 
 function getCart() {
@@ -450,9 +455,101 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { 
         if (isCartOpen) { toggleCart(); }
         if (isMobileMenuOpen) { toggleMobileMenu(); }
-        ['modal-create','modal-edit','modal-delete','modal-detail'].forEach(id => { 
+        ['modal-create','modal-edit','modal-delete','modal-detail','modal-checkout'].forEach(id => { 
             let el = document.getElementById(id);
             if(el && !el.classList.contains('hidden')) closeModal(id); 
         }); 
     }
 });
+
+// --- LOGICA DE PAGO POR WHATSAPP ---
+
+function proceedToCheckout() {
+    const cart = getCart();
+    if (cart.length === 0) {
+        showToast('Tu carrito está vacío', 'error');
+        return;
+    }
+
+    // Calcular el total
+    let total = 0;
+    cart.forEach(item => {
+        total += item.price * (item.qty || 1);
+    });
+
+    document.getElementById('checkout-total-val').textContent = '$' + total.toFixed(2);
+
+    // Pre-llenar el formulario del modal si window.AURA_USER tiene datos
+    const user = window.AURA_USER || {};
+    document.getElementById('checkout-name').value = user.name || '';
+    document.getElementById('checkout-email').value = user.email || '';
+    document.getElementById('checkout-phone').value = user.phone || '';
+    document.getElementById('checkout-address').value = user.address || '';
+
+    // Si la barra lateral del carrito está abierta, la cerramos
+    if (isCartOpen) {
+        toggleCart();
+    }
+
+    // Abrimos el modal de confirmación de envío
+    openModal('modal-checkout');
+}
+
+function sendWhatsAppOrder(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('checkout-name').value.trim();
+    const email = document.getElementById('checkout-email').value.trim();
+    const phone = document.getElementById('checkout-phone').value.trim();
+    const address = document.getElementById('checkout-address').value.trim();
+
+    if (!name || !email || !phone || !address) {
+        showToast('Por favor completa todos los campos requeridos', 'error');
+        return;
+    }
+
+    const cart = getCart();
+    if (cart.length === 0) {
+        showToast('Tu carrito está vacío', 'error');
+        return;
+    }
+
+    let total = 0;
+    let productsText = '';
+    cart.forEach(item => {
+        const itemTotal = item.price * (item.qty || 1);
+        total += itemTotal;
+        productsText += `• ${item.qty}x ${item.name} - $${item.price.toFixed(2)} (Subtotal: $${itemTotal.toFixed(2)})\n`;
+    });
+
+    const totalText = `$${total.toFixed(2)}`;
+
+    // Construir mensaje estructurado
+    const message = 
+`¡Hola AURA! 🌟
+Me gustaría realizar el siguiente pedido:
+
+📋 *Detalle del Pedido:*
+${productsText}
+💵 *Total:* ${totalText}
+
+👤 *Datos del Cliente:*
+• *Nombre:* ${name}
+• *Email:* ${email}
+• *Teléfono:* ${phone}
+• *Dirección de envío:* ${address}`;
+
+    const whatsappNumber = '573005597834'; // Colombia prefix + Number
+    const encodedMessage = encodeURIComponent(message);
+    const url = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+
+    // Cerrar modal
+    closeModal('modal-checkout');
+
+    // Vaciar el carrito
+    saveCart([]);
+    updateCartCount();
+
+    // Abrir WhatsApp en pestaña nueva
+    window.open(url, '_blank');
+}
