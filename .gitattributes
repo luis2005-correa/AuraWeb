@@ -61,3 +61,8 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Ignorar vistas Razor y archivos web para el cálculo de lenguajes
+*.cshtml linguist-detectable=false
+*.html linguist-detectable=false
+wwwroot/** linguist-detectable=false
